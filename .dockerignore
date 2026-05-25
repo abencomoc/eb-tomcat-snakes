@@ -1,0 +1,7 @@
+.git
+.gitignore
+.gitmodules
+README.md
+build.sh
+build-windows.sh
+src/.ebextensions/inactive/

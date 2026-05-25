@@ -4,9 +4,9 @@
     <Console name="Console" target="SYSTEM_OUT">
       <PatternLayout pattern="%d{HH:mm:ss.SSS} %msg%n"/>
     </Console>
-    <File name="snakes" fileName="${web:rootDir}/log/snakes.log" bufferedIO="false">
+    <Console name="snakes" target="SYSTEM_OUT">
       <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
-    </File>
+    </Console>
   </Appenders>
   <Loggers>
     <Logger name="snakes" level="trace">
