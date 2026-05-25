@@ -1,0 +1,60 @@
+{{- define "common-lib.ingress" -}}
+{{- if and .Values.ingress .Values.ingress.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "common-lib.fullname" . }}
+  labels:
+    {{- include "common-lib.labels" . | nindent 4 }}
+  annotations:
+    # AWS ALB Controller annotations
+    alb.ingress.kubernetes.io/scheme: internal
+    alb.ingress.kubernetes.io/target-type: {{ .Values.ingress.alb.targetType | default "ip" }}
+    {{- if and .Values.ingress .Values.ingress.certificateArn }}
+    alb.ingress.kubernetes.io/certificate-arn: {{ .Values.ingress.certificateArn }}
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+    {{- else }}
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
+    {{- end }}
+    {{- if and .Values.ingress.alb .Values.ingress.alb.groupName }}
+    alb.ingress.kubernetes.io/group.name: {{ .Values.ingress.alb.groupName }}
+    {{- end }}
+    {{- if and .Values.ingress.alb .Values.ingress.alb.accessLogs }}
+    alb.ingress.kubernetes.io/load-balancer-attributes: access_logs.s3.enabled=true,access_logs.s3.bucket={{ .Values.ingress.alb.accessLogs.s3BucketName }},access_logs.s3.prefix={{ .Values.ingress.alb.accessLogs.s3Prefix | default "alb-logs" }}
+    {{- end }}
+    {{- if .Values.ingress.healthCheckPath }}
+    alb.ingress.kubernetes.io/healthcheck-path: {{ .Values.ingress.healthCheckPath }}
+    {{- else }}
+    alb.ingress.kubernetes.io/healthcheck-path: {{ .Values.ingress.path | default "/" }}
+    {{- end }}
+    {{- if .Values.ingress.successCodes }}
+    alb.ingress.kubernetes.io/success-codes: {{ .Values.ingress.successCodes | quote }}
+    {{- else }}
+    alb.ingress.kubernetes.io/success-codes: "200-299"
+    {{- end }}
+    {{- with .Values.ingress.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  {{- with .Values.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  {{- if .Values.ingress.hostname }}
+  rules:
+    - host: {{ .Values.ingress.hostname }}
+      http:
+  {{- else }}
+  rules:
+    - http:
+  {{- end }}
+        paths:
+          - path: {{ .Values.ingress.path | default "/" }}
+            pathType: {{ .Values.ingress.pathType | default "Prefix" }}
+            backend:
+              service:
+                name: {{ include "common-lib.fullname" . }}
+                port:
+                  number: {{ required "ingress.servicePort is required when ingress is enabled" .Values.ingress.servicePort }}
+{{- end }}
+{{- end }}

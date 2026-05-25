@@ -1,0 +1,17 @@
+{{- define "common-lib.pvc" -}}
+{{- if and .Values.persistence .Values.persistence.enabled (has "ReadWriteMany" (.Values.persistence.accessModes | default list)) -}}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "common-lib.fullname" . }}-shared
+  labels:
+    {{- include "common-lib.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: {{ .Values.persistence.storageClass }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.size | default "10Gi" }}
+{{- end }}
+{{- end }}

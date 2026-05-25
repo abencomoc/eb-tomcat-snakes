@@ -1,0 +1,8 @@
+{{/* persistence.enabled=true → StatefulSet, otherwise → Deployment */}}
+{{- define "common-lib.workload" -}}
+{{- if and .Values.persistence .Values.persistence.enabled -}}
+{{- include "common-lib.statefulset" . }}
+{{- else -}}
+{{- include "common-lib.deployment" . }}
+{{- end -}}
+{{- end -}}

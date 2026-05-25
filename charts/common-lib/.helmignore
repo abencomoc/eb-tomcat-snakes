@@ -1,0 +1,25 @@
+# Patterns to exclude when packaging Helm chart
+
+# Example/reference charts
+example-chart/
+
+# Template files (not final)
+*.template
+
+# Git files
+.git/
+.gitignore
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.bak

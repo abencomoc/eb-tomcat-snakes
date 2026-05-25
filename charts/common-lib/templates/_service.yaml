@@ -1,0 +1,19 @@
+{{- define "common-lib.service" -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "common-lib.fullname" . }}
+  labels:
+    {{- include "common-lib.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    {{- range .Values.service.ports }}
+    - port: {{ .port }}
+      targetPort: {{ .targetPort | default .port }}
+      protocol: {{ .protocol | default "TCP" }}
+      name: {{ .name | default "http" }}
+    {{- end }}
+  selector:
+    {{- include "common-lib.selectorLabels" . | nindent 4 }}
+{{- end }}

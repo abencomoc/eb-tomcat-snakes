@@ -1,0 +1,46 @@
+{{- define "common-lib.alb-log-bucket" -}}
+{{- if and .Values.albLogBucket .Values.albLogBucket.enabled -}}
+apiVersion: s3.services.k8s.aws/v1alpha1
+kind: Bucket
+metadata:
+  name: {{ include "common-lib.fullname" . }}-alb-logs
+  labels:
+    {{- include "common-lib.labels" . | nindent 4 }}
+spec:
+  name: {{ .Values.albLogBucket.bucketName }}
+  encryption:
+    rules:
+    - applyServerSideEncryptionByDefault:
+        sseAlgorithm: AES256
+  publicAccessBlock:
+    blockPublicAcls: true
+    blockPublicPolicy: true
+    ignorePublicAcls: true
+    restrictPublicBuckets: true
+  lifecycleConfiguration:
+    rules:
+    - id: expire-old-logs
+      status: Enabled
+      expiration:
+        days: {{ .Values.albLogBucket.retentionDays | default 90 }}
+      noncurrentVersionExpiration:
+        noncurrentDays: 30
+      abortIncompleteMultipartUpload:
+        daysAfterInitiation: 7
+  policy: |
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Sid": "AllowLogDeliveryPut",
+          "Effect": "Allow",
+          "Principal": {
+            "Service": "logdelivery.elasticloadbalancing.amazonaws.com"
+          },
+          "Action": "s3:PutObject",
+          "Resource": "arn:aws:s3:::{{ .Values.albLogBucket.bucketName }}/*"
+        }
+      ]
+    }
+{{- end }}
+{{- end }}

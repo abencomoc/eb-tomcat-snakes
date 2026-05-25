@@ -1,0 +1,98 @@
+{{- define "common-lib.deployment" -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "common-lib.fullname" . }}
+  labels:
+    {{- include "common-lib.labels" . | nindent 4 }}
+spec:
+  {{- if not (and .Values.autoscaling .Values.autoscaling.enabled) }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 25%
+      maxSurge: 25%
+  selector:
+    matchLabels:
+      {{- include "common-lib.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "common-lib.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- $podSec := dict "runAsNonRoot" true "runAsUser" (int64 10000) "fsGroup" (int64 10000) "seccompProfile" (dict "type" "RuntimeDefault") }}
+      {{- with .Values.podSecurityContext }}{{- $podSec = mustMergeOverwrite $podSec . }}{{- end }}
+      securityContext:
+        {{- toYaml $podSec | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          {{- $ctrSec := dict "runAsNonRoot" true "runAsUser" (int64 10000) "allowPrivilegeEscalation" false "capabilities" (dict "drop" (list "ALL")) }}
+          {{- with .Values.securityContext }}{{- $ctrSec = mustMergeOverwrite $ctrSec . }}{{- end }}
+          securityContext:
+            {{- toYaml $ctrSec | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy | default "Always" }}
+          {{- if .Values.service.ports }}
+          ports:
+            {{- range .Values.service.ports }}
+            - name: {{ .name }}
+              containerPort: {{ .containerPort }}
+              protocol: {{ .protocol | default "TCP" }}
+            {{- end }}
+          {{- end }}
+          {{- if or .Values.env .Values.secretEnvs (and .Values.config .Values.config.enabled) }}
+          env:
+            {{- with .Values.env }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+            {{- if and .Values.config .Values.config.enabled }}
+            {{- range $key, $value := .Values.config.data }}
+            - name: {{ $key }}
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "common-lib.fullname" $ }}
+                  key: {{ $key }}
+            {{- end }}
+            {{- end }}
+            {{- range .Values.secretEnvs }}
+            - name: {{ .envName }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Values.secretName }}
+                  key: {{ .secretKey }}
+            {{- end }}
+          {{- end }}
+          {{- with .Values.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            {{- with .Values.volumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+      volumes:
+        {{- with .Values.volumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+{{- end }}

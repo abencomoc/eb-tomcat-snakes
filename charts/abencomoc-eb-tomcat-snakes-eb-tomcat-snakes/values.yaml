@@ -1,0 +1,70 @@
+image:
+  repository: 507992857438.dkr.ecr.us-east-1.amazonaws.com/aws-transform/abencomoc-eb-tomcat-snakes-eb-tomcat-snakes
+  tag: latest
+
+replicaCount: 1
+
+service:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      containerPort: 8080
+      protocol: TCP
+
+ingress:
+  enabled: true
+  className: alb
+  path: /
+  pathType: Prefix
+  hostname: app.bencasie.people.aws.dev
+  certificateArn: arn:aws:acm:us-east-1:507992857438:certificate/0f57b971-552b-43c7-a768-14e498b07f67  # Optional: ACM certificate ARN — enables HTTPS on the ALB
+  servicePort: 8080  # HTTP port the ALB routes to (is_http: true)
+  healthCheckPath: /search
+  successCodes: "200-299"
+  alb:
+    groupName: "app-services"
+    targetType: ip
+    accessLogs:
+      s3BucketName: alb-logs
+      s3Prefix: alb-logs
+
+config:
+  enabled: true
+  data:
+    RDS_HOSTNAME: <eb_tomcat_snakes_rds_hostname>  # PostgreSQL database hostname
+    RDS_PORT: "5432"                               # PostgreSQL database port
+    RDS_DB_NAME: <eb_tomcat_snakes_rds_db_name>   # PostgreSQL database name
+    RDS_USERNAME: <eb_tomcat_snakes_rds_username>  # PostgreSQL database username
+
+# Secret env vars — sourced from a Kubernetes Secret via secretKeyRef
+# secretKey format: {service_name_snake}__{env_var_lower}
+secretName: db-secret
+secretEnvs:
+  - envName: RDS_PASSWORD
+    secretKey: abencomoc_eb_tomcat_snakes_eb_tomcat_snakes__rds_password  # PostgreSQL database password
+
+livenessProbe:
+  httpGet:
+    path: /search
+    port: 8080
+  initialDelaySeconds: 30
+  periodSeconds: 15
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /search
+    port: 8080
+  initialDelaySeconds: 20
+  periodSeconds: 10
+  failureThreshold: 3
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 250m
+    memory: 512Mi

@@ -1,0 +1,21 @@
+{{- define "common-lib.hosted-zone" -}}
+{{- if and .Values.hostedZone .Values.hostedZone.enabled -}}
+apiVersion: route53.services.k8s.aws/v1alpha1
+kind: HostedZone
+metadata:
+  name: {{ include "common-lib.fullname" . }}-zone
+  labels:
+    {{- include "common-lib.labels" . | nindent 4 }}
+spec:
+  name: {{ .Values.hostedZone.domainName }}
+  hostedZoneConfig:
+    comment: "Private hosted zone for {{ .Values.hostedZone.domainName }} managed by AWS Transform"
+    privateZone: true
+  vpc:
+    vpcID: {{ .Values.hostedZone.vpcID }}
+    vpcRegion: {{ .Values.hostedZone.vpcRegion }}
+  tags:
+    - key: ManagedBy
+      value: aws-transform
+{{- end }}
+{{- end }}

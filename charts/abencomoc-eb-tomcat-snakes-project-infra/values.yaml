@@ -1,0 +1,10 @@
+albLogBucket:
+  enabled: true
+  bucketName: alb-logs
+  retentionDays: 90
+
+hostedZone:
+  enabled: true
+  domainName: abencomoc-eb-tomcat-snakes.internal
+  vpcID: vpc-0c1b20409091ef811
+  vpcRegion: us-east-1
